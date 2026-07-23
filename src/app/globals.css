@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f4f7fc;
+  color: #1a1a1a;
+  font-size: 1.0625rem; /* 17px, selaras dengan text-base yang sudah dinaikkan di tailwind.config.ts — jaga-jaga untuk elemen yang tidak pakai class text-* Tailwind */
+}
+
+.btn-primary {
+  @apply bg-ink text-white px-5 py-3 text-sm tracking-wide font-medium hover:bg-black/80 transition-colors;
+}
+
+.btn-outline {
+  @apply border border-ink px-5 py-3 text-sm tracking-wide font-medium hover:bg-ink hover:text-white transition-colors;
+}
+
+.card {
+  @apply bg-white border border-black/10;
+}
+
+/* BlockNote reserves left padding for drag-handles/add-block buttons even
+   when read-only. Remove that gutter on the public article view so the
+   text lines up with the title and summary above it. */
+/* BlockNote's own stylesheet forces font-family: Inter (via .bn-default-styles
+   in @blocknote/mantine/style.css), which would otherwise make the article
+   content use a different font than the rest of the site. Override it here
+   so the whole app — including the reader and CMS editor — uses the same
+   font set in tailwind.config.ts / layout.tsx. */
+.bn-default-styles,
+.bn-container {
+  font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.hiboni-reader-editor {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Lega-kan jarak antar baris dan antar paragraf pada tampilan baca publik
+   supaya lebih nyaman dibaca. line-height diterapkan di root editor agar
+   ikut ke semua jenis block (paragraf, list, heading, dsb), sedangkan
+   margin-bottom hanya diberikan ke paragraf agar tidak ada spasi ganda
+   di antara block lain seperti gambar atau divider. */
+.hiboni-reader-editor {
+  font-size: 1.05rem;
+}
+
+/* BlockNote's own stylesheet sets line-height: 1.5 on .bn-block-outer
+   (loaded after globals.css). Same specificity (1 class) means BlockNote's
+   rule wins and silently overrides ours, so we target it via its parent
+   to bump specificity to 2 classes. This is the actual line-height that
+   controls spacing between lines *within* a paragraph. */
+.hiboni-reader-editor .bn-block-outer {
+  line-height: 1.85;
+}
+
+.hiboni-reader-editor .bn-block-content[data-content-type="paragraph"] {
+  margin-bottom: 1.25rem;
+}
+
+.hiboni-reader-editor .bn-block-content[data-content-type="heading"] {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Heading (H1/H2/H3) ikut mewarisi line-height: 1.85 dari .bn-block-outer
+   di atas, padahal font-size-nya jauh lebih besar dari body text — jadi
+   leading-nya terlihat berlebihan. Di-set langsung di elemen heading-nya
+   (bukan lewat parent) supaya menimpa nilai warisan tanpa perlu berebut
+   spesifisitas dengan .bn-block-outer.
+   Ukuran font juga diperkecil dari default BlockNote (H1: 3em, H2: 2em,
+   H3: 1.3em — terlalu besar untuk artikel) lewat custom property --level
+   yang dipakai BlockNote untuk menentukan font-size tiap level heading. */
+.hiboni-reader-editor [data-content-type="heading"] {
+  line-height: 1.3;
+  --level: 1.8em; /* H1 */
+}
+
+.hiboni-reader-editor [data-content-type="heading"][data-level="2"] {
+  --level: 1.5em; /* H2 */
+}
+
+.hiboni-reader-editor [data-content-type="heading"][data-level="3"] {
+  --level: 1.25em; /* H3 */
+}
+
+.hiboni-reader-editor .bn-block-content[data-content-type="bulletListItem"],
+.hiboni-reader-editor .bn-block-content[data-content-type="numberedListItem"] {
+  margin-bottom: 0.5rem;
+}
+
+/* Animasi sederhana saat daftar card muncul (mis. setelah klik filter
+   kategori), supaya terasa halus ketimbang berubah instan seperti
+   pindah halaman. Dipakai lewat class .story-card-enter di page.tsx. */
+@keyframes card-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.story-card-enter {
+  animation: card-fade-in 0.4s ease-out both;
+}

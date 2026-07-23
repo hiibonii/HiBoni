@@ -1,0 +1,198 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Roles ────────────────────────────────────────────────────────
+    // Every signed-in user has a private users/{uid} doc (see
+    // src/lib/usersStore.ts, created automatically on first login with
+    // role "user"). Role is looked up from THAT doc, not from sign-in
+    // provider — Google and email/password sign-ins are treated
+    // identically now; only the stored role matters.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    function isSuperAdmin() {
+      return myRole() == 'super_admin';
+    }
+
+    function isCreator() {
+      return myRole() == 'creator';
+    }
+
+    // Anyone allowed into the CMS dashboard at all.
+    function isStaff() {
+      return isSuperAdmin() || isCreator();
+    }
+
+    function isPublished(storyId) {
+      return get(/databases/$(database)/documents/stories/$(storyId)).data.get('status', '') == 'published';
+    }
+
+    // Safe accessor — stories created before the authorId field existed
+    // (pre-migration, or ones "Sync Authors" hasn't reached yet) simply
+    // don't have this key at all. Reading a genuinely-missing map key via
+    // dot notation (`.data.authorId`) THROWS in Firestore rules rather
+    // than returning null, which silently denies the whole request —
+    // .get(key, default) is the safe way to read a field that might not
+    // exist.
+    function storyAuthorId(storyId) {
+      return get(/databases/$(database)/documents/stories/$(storyId)).data.get('authorId', null);
+    }
+
+    // super_admin can manage any story; a creator can only manage
+    // (edit/delete, and add/edit chapters, parts, and blog content on)
+    // their own.
+    function canManageStory(storyId) {
+      return isSuperAdmin() ||
+        (isCreator() && storyAuthorId(storyId) == request.auth.uid);
+    }
+
+    // Per-story comments toggle (set by the story's own creator/owner from
+    // the editor) — replaces the old site-wide switch. Missing field
+    // defaults to ENABLED, so stories saved before this existed behave the
+    // same as before.
+    function commentsEnabled(storyId) {
+      return get(/databases/$(database)/documents/stories/$(storyId)).data.get('commentsEnabled', true);
+    }
+
+    // Categories: visible to everyone (used by the Home filter), but only
+    // a super_admin can add/edit/delete — managed from /dashboard/settings.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // Private account records — contains email, so this is NOT public.
+    // - Anyone can read their OWN doc; a super_admin can read any (needed
+    //   for the /dashboard/users management list).
+    // - Self-creation is allowed ONLY with role "user" — this is what
+    //   makes privilege escalation impossible: nobody can grant themselves
+    //   creator/super_admin by writing their own doc.
+    // - Only a super_admin can change a role, and ONLY the `role` field —
+    //   even a super_admin can't rewrite someone else's email/name through
+    //   this rule.
+    match /users/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.uid == uid &&
+        request.resource.data.role == 'user';
+      // Two distinct, narrow update paths — neither can touch the other's
+      // fields: a super_admin may change ONLY `role`; the account owner
+      // may change ONLY their own display name/photo. This is what keeps
+      // "edit my profile" from ever being usable to self-promote.
+      allow update: if
+        (isSuperAdmin() && request.auth.uid != uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])) ||
+        (isSignedIn() && request.auth.uid == uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL']));
+      allow delete: if false;
+
+      // A user's private reading-list — nobody else (not even a
+      // super_admin) needs to see it, so this stays fully owner-only and
+      // doesn't need the role system at all.
+      match /bookmarks/{storyId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // Public-safe author profile (display name + photo only, no email, no
+    // role) — used to show "written by ..." on stories. Nothing sensitive
+    // lives here, so any signed-in user may freely read/write their own.
+    match /authorProfiles/{uid} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Stories:
+    // - Public can read only published stories.
+    // - A super_admin can read/write anything.
+    // - A creator can read/write only their OWN stories (drafts included).
+    match /stories/{storyId} {
+      allow read: if resource.data.get('status', '') == 'published' ||
+        isSuperAdmin() ||
+        (isCreator() && resource.data.get('authorId', null) == request.auth.uid);
+
+      allow create: if isStaff() && request.resource.data.authorId == request.auth.uid;
+
+      // Anyone (including anonymous visitors) may bump the view counter on
+      // published stories — but ONLY the "views" field may change. Any
+      // other edit requires ownership per canManageStory(), and the
+      // authorId itself may never be changed once set (prevents a creator
+      // from "transferring" a story to bypass ownership scoping). Both
+      // sides read authorId defensively — a legacy story genuinely has no
+      // authorId key at all until migrated, and dot-notation access to a
+      // missing key throws rather than comparing as null.
+      allow update: if (canManageStory(storyId) &&
+          request.resource.data.get('authorId', null) == resource.data.get('authorId', null)) ||
+        (resource.data.get('status', '') == 'published' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']));
+
+      allow delete: if canManageStory(storyId);
+
+      // Blog body text, stored separately so list views don't have to
+      // download it. Same visibility/ownership rule as the parent story.
+      match /content/{docId} {
+        allow read: if isPublished(storyId) || canManageStory(storyId);
+        allow write: if canManageStory(storyId);
+      }
+
+      match /chapters/{chapterId} {
+        allow read: if isPublished(storyId) || canManageStory(storyId);
+        allow write: if canManageStory(storyId);
+
+        match /parts/{partId} {
+          // Free preview: a signed-out visitor may read only the first 2
+          // parts (order 0 and 1) of the first chapter (order 0) of a
+          // published story — everything else requires signing in. This
+          // is enforced HERE, not just hidden in the UI, so the gate can't
+          // be bypassed by querying Firestore directly.
+          //
+          // Uses `order` (not array/list position, which rules can't see)
+          // to identify "the first chapter/part" — this assumes order
+          // values start at 0 with no gaps, which holds under normal
+          // creation but could drift if the original first chapter is
+          // later deleted. Acceptable trade-off at this app's scale; the
+          // client also caps its own query to match (see getParts).
+          allow read: if canManageStory(storyId) ||
+            (isPublished(storyId) &&
+              (isSignedIn() ||
+                (get(/databases/$(database)/documents/stories/$(storyId)/chapters/$(chapterId)).data.get('order', -1) == 0 &&
+                 resource.data.get('order', -1) < 2)));
+          allow write: if canManageStory(storyId);
+        }
+      }
+    }
+
+    // Comments live at two different depths (stories/{id}/comments for blog,
+    // and stories/{id}/chapters/{c}/parts/{p}/comments for story parts).
+    // A recursive wildcard match is REQUIRED here — not two separate
+    // depth-specific `match` blocks — because collection-group queries
+    // (e.g. getCountFromServer(collectionGroup(db, "comments")) used by the
+    // dashboard's "Total Comments" stat) are only authorized by rules
+    // declared with `{path=**}`, regardless of how deep the comment lives.
+    match /{path=**}/comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        request.resource.data.authorUid == request.auth.uid &&
+        commentsEnabled(path[1]);
+      allow update: if false;
+      // Delete-only comment moderation: a super_admin can remove anything;
+      // a creator can remove ANY comment but only on a story they own
+      // (path[1] is the storyId — both comment locations, .../stories/{id}/
+      // comments and .../stories/{id}/chapters/{c}/parts/{p}/comments,
+      // start with "stories/{storyId}", so this works for both); anyone
+      // signed in can always remove their own comment.
+      allow delete: if canManageStory(path[1]) ||
+        (request.auth != null && resource.data.authorUid == request.auth.uid);
+    }
+  }
+}

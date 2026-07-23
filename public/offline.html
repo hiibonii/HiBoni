@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kamu sedang offline — HiBoni</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #f4f7fc;
+    color: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-align: center;
+  }
+  .card {
+    max-width: 420px;
+  }
+  .icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 24px;
+    border-radius: 14px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(26, 26, 26, 0.6);
+    margin: 0 0 28px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    background: #1a1a1a;
+    border: none;
+    padding: 12px 24px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: rgba(26, 26, 26, 0.85);
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="icon" src="/icons/icon-192.png" alt="HiBoni" />
+    <h1>Kamu sedang offline</h1>
+    <p>
+      Halaman ini belum tersimpan untuk dibuka tanpa koneksi internet.
+      Sambungkan kembali ke internet, lalu coba lagi.
+    </p>
+    <button onclick="location.reload()">Coba Lagi</button>
+  </div>
+</body>
+</html>

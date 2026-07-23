@@ -13,10 +13,10 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://hi-boni.vercel.app/";
 const SITE_NAME = "HiBoni";
 const SITE_DESCRIPTION =
-  "HiBoni — platform blog dan cerita bersambung. Baca artikel editorial dan cerita berchapter, atau tulis dan terbitkan karyamu sendiri.";
+  "HiBoni — The Written Word, Refined.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

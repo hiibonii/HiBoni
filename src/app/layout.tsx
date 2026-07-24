@@ -21,7 +21,7 @@ const SITE_DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Blog & Story Platform`,
+    default: `${SITE_NAME} — The Written Word, Refined.`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -39,13 +39,13 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Blog & Story Platform`,
+    title: `${SITE_NAME} — The Written Word, Refined.`,
     description: SITE_DESCRIPTION,
     locale: "id_ID",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Blog & Story Platform`,
+    title: `${SITE_NAME} — The Written Word, Refined.`,
     description: SITE_DESCRIPTION,
   },
   icons: {

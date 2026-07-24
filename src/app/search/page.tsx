@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import StoryCard from "@/components/StoryCard";
 import { searchStories } from "@/lib/firestore";
 import { getCategoriesCached } from "@/lib/categoriesStore";
@@ -47,9 +48,9 @@ function SearchInner() {
   }, [q]);
 
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-6 py-12">
+      <main className="max-w-6xl mx-auto px-6 py-12 flex-1 w-full">
         <p className="text-xs uppercase tracking-widest text-black/50">
           Search Results
         </p>
@@ -80,6 +81,7 @@ function SearchInner() {
           </>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

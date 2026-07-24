@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
 import {
   getStoryBySlug,
@@ -179,7 +180,7 @@ function DetailInner({ initialStory }: { initialStory?: StoryDoc | null }) {
   };
 
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="relative w-full h-[45vh] bg-black/10">
         {story.coverImage && (
@@ -218,7 +219,7 @@ function DetailInner({ initialStory }: { initialStory?: StoryDoc | null }) {
         </div>
       </div>
 
-      <main className="max-w-3xl mx-auto px-6 py-12">
+      <main className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
         {story.type === "blog" ? (
           <>
             <ContentRenderer key={`content-${story.id}`} content={story.content} />
@@ -344,6 +345,7 @@ function DetailInner({ initialStory }: { initialStory?: StoryDoc | null }) {
           </>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

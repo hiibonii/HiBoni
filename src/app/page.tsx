@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import StoryCard from "@/components/StoryCard";
 import {
   getPublishedStories,
@@ -212,9 +213,9 @@ function HomeInner() {
     sort === "trending" ? "Trending Now" : sort === "latest" ? "Latest Stories" : null;
 
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-6 py-12">
+      <main className="max-w-6xl mx-auto px-6 py-12 flex-1 w-full">
         {headline ? (
           <h1 className="text-4xl md:text-5xl font-bold mb-8">{headline}</h1>
         ) : (
@@ -315,6 +316,7 @@ function HomeInner() {
           </button>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
